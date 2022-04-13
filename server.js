@@ -74,14 +74,23 @@ app.get("/upload", function(req, res){
 });
 
 app.post('/graphs', function(req, res){
-    var newGraph = new model.graphsModel(req.body.graphs);
-
+    var newGraph = new model(req.body.graphs);
+    console.log("graph: " + JSON.stringify(req.body));
     newGraph.save().then(function(){
         res.send("Added new graph to database!");
     }).catch(function(err){
         console.error(err.stack)
     });
 });
+
+app.get("/list", function(req,res) {
+    model.listAllGraphs().then(function(graphs){
+        res.render("pages/list", {graphs:graphs});
+    }).catch(function(error){
+        res.error("Something went wrong!" + error );
+    });
+
+})
 
 app.use(express.static(__dirname + '/views/pages'));
 
