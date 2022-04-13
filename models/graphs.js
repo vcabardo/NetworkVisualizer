@@ -2,14 +2,14 @@ var mongoose = require("mongoose");
 
 var graphsSchema = new mongoose.Schema({
     nodes: [{
-    id : int,
+    id : Number,
     label : String
 }],
     edges: [{
-    from : int,
-    to : int
+    from : Number,
+    to : Number
 }]
-    
+
 });
 
 var graphsModel = mongoose.model('graphs', graphsSchema);
