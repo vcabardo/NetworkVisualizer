@@ -1,3 +1,6 @@
+
+
+<%# navbar code from: https://getbootstrap.com/docs/5.0/components/navbar/ %>
 <html lang="en">
   <head>
     <title>Network</title>
@@ -14,15 +17,10 @@
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
   </head>
   <body>
-    <%- include("../partials/header.ejs") %>
-    <div class="container-fluid">
-      <div class="row min-vh-100">
-        <div class="col-1 sidebar d-sm-none d-md-block">
-          <%- include("../partials/navbar.ejs") %>
-        </div>
-
-        <div class="col-11 content bg-gradient">
-
+    <div class="container-fluid header">
+      <div class="row">
+        <div class="col d-flex justify-content-center">
+            <h1 class= "text-white"> Network Visualization Tool </h1>
         </div>
       </div>
     </div>
