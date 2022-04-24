@@ -142,12 +142,9 @@
           editEdge: function(edgeData,callback) {
             if (edgeData.from !== edgeData.to) {
             document.getElementById("operation").innerText = "Edit Edge";
-            document.getElementById("edge-to").innerText = edgeData.to;
-            document.getElementById("edge-from").innerText = edgeData.from;
-            document.getElementById("edge-value").value = edgeData.value;
-            for (const [key, value] of Object.entries(edgeData)) {
-              alert(value);
-            }
+            document.getElementById("edge-to").innerText = "To: "+edgeData.to;
+            document.getElementById("edge-from").innerText = "From: "+edgeData.from;
+            document.getElementById("edge-value").value = "Enter value";
 
             document.getElementById("saveButton").onclick = saveEdgeData.bind(
               this,

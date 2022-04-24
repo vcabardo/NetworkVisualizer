@@ -1,13 +1,15 @@
 var mongoose = require("mongoose");
 
 var graphsSchema = new mongoose.Schema({
+    name: { type : String , unique : true, required : true },
     nodes: [{
     id : Number,
     label : String
 }],
     edges: [{
     from : Number,
-    to : Number
+    to : Number,
+    value : Number
 }]
 
 });
