@@ -43,7 +43,7 @@ rd.on('line', function(line) {
     else if ( buildingNetworkTopo == true ) {
         // Building network topology
         netParams = line.split(" ");
-        edges.push({from:netParams[0], to:netParams[1]})
+        edges.push({from:netParams[0], to:netParams[1], value:1})
     }
 });
 
