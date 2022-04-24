@@ -92,7 +92,7 @@ app.get("/list", function(req,res) {
 
 })
 
-app.use(express.static(__dirname + '/views/pages'));
+app.use(express.static(__dirname + '/views'));
 
 http.listen(3000, function(){
   console.log('listening on *:3000');

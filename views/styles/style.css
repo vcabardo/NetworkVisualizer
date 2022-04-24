@@ -17,6 +17,6 @@
 }
 
 #mynetwork {
-  width: 600px;
-  min-height: 400px;
+  width: inherit;
+  height: inherit;
 }
