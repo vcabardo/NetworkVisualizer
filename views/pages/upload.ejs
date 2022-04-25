@@ -25,9 +25,9 @@
         <div class="col-11 content bg-gradient">
           <h1 class="text-white">Upload a new graph:</h1>
           <%# form code from: https://www.tutorialkart.com/nodejs/node-js-upload-file-to-server/ %>
-          <form action="fileupload" method="post" enctype="multipart/form-data">
+          <form action="upload" method="post" enctype="multipart/form-data">
             <div class="d-flex flex-column justify-content-lg-center">
-              <input class="text-white" type="file" name="filetoupload"> <br> <br>
+              <input class="text-white" type="file" id="myFile" name="filetoupload"> <br> <br>
               <input type="submit" value="Upload">
             </div>
           </form>

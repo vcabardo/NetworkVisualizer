@@ -3,6 +3,9 @@ var mongoose = require('mongoose');
 var app = express();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
+var fs = require('fs');
+var formidable = require('formidable');
+var path = require('path');
 
 mongoose.connect('mongodb://localhost:27017/', {useNewUrlParser: true}).catch(error => console.log("Something went wrong: " + error));
 
@@ -81,6 +84,29 @@ app.post('/graphs', function(req, res){
     }).catch(function(err){
         console.error(err.stack)
     });
+});
+
+app.post('/upload', function(req, res){
+    var form = new formidable.IncomingForm();
+
+    form.uploadDir = __dirname + '/views/fileuploads/';
+
+    form.parse(req, function (err, fields, files) {
+
+        // oldpath : temporary folder to which file is saved to
+        var oldpath = files.filetoupload.filepath;
+        var newpath = form.uploadDir + files.filetoupload.originalFilename;
+
+        fs.rename(oldpath, newpath, function (err) {
+            if (err) throw err;
+        });
+
+        // TODO: parse uploaded file, save contents to db
+
+        res.render("pages/upload");
+    });
+
+
 });
 
 app.get("/list", function(req,res) {
