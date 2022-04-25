@@ -18,5 +18,6 @@ graphsSchema.statics.listAllGraphs = function() {
     return this.find({});
 };
 
+
 var graphsModel = mongoose.model('graphs', graphsSchema);
 module.exports = graphsModel;

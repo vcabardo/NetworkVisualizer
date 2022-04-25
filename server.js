@@ -24,7 +24,7 @@ var nodes = [];
 var nodeCount = 1;
 var gettingNodeCount = false;
 var buildingNetworkTopo = false;
-
+var name = 'Test';
 rd.on('line', function(line) {
     //console.log(line);
     if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
@@ -68,7 +68,8 @@ app.get('/', function(req, res){
 app.get("/view", function(req, res){
   res.render("pages/network", {
       nodes: nodes,
-      edges: edges
+      edges: edges, 
+      name: name
   });
 });
 
@@ -76,14 +77,21 @@ app.get("/upload", function(req, res){
     res.render("pages/upload");
 });
 
-app.post('/graphs', function(req, res){
-    var newGraph = new model(req.body.graphs);
-    console.log("graph: " + JSON.stringify(req.body));
-    newGraph.save().then(function(){
-        res.send("Added new graph to database!");
-    }).catch(function(err){
-        console.error(err.stack)
+app.post("/search", function(req, res){
+    model.findOne({name: req.body.name}).then(function(entry){
+        res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges}));
     });
+});
+
+app.post('/graphs', function(req, res){
+    console.log("graph: " + req.body.name);
+    var query = {'name': req.body.name};
+
+    model.findOneAndUpdate(query, req.body, {upsert: true}, function(err, doc) {
+        if (err) return res.send(500, {error: err});
+        return res.send('Succesfully saved.');
+    });
+
 });
 
 app.post('/upload', function(req, res){
@@ -102,10 +110,54 @@ app.post('/upload', function(req, res){
         });
 
         // TODO: parse uploaded file, save contents to db
+        rd = readline.createInterface({
+            input: fs.createReadStream(newpath),
+            console: false
+        });
+        
+        edges = [];
+        nodes = [];
+        nodeCount = 1;
+        gettingNodeCount = false;
+        buildingNetworkTopo = false;
+        
+        rd.on('line', function(line) {
+            //console.log(line);
+            if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
+            else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
+                for (let i = 1; i <= nodeCount; i++){
+                    nodes.push({id: i, label: "Node"+i})
+                }
+                console.log(nodes)
+            }
+            else if( line.substring( 0,7 ) == "BEG_001" ) { buildingNetworkTopo = true;}
+            else if( line.substring( 0,7 ) == "END_001" ) { buildingNetworkTopo = false; console.log(edges);}
+            else if (line.substring( 0,7 ) == "END_101") { 
+                //res.render("pages/upload");
+                name = files.filetoupload.originalFilename;
 
-        res.render("pages/upload");
+                var newGraph = new model({name: files.filetoupload.originalFilename, nodes: nodes, edges: edges});
+                newGraph.save().then(function(){
+                    res.send("Added new graph to database!");
+                }).catch(function(err){
+                    console.error(err.stack)
+                });
+            }
+
+            else if ( gettingNodeCount == true ) {
+        
+                    // Getting number of nodes to create
+                    netParams = line.split(" ");
+                    nodeCount = netParams[1];
+            }
+            else if ( buildingNetworkTopo == true ) {
+                // Building network topology
+                netParams = line.split(" ");
+                edges.push({from:netParams[0], to:netParams[1], value:1})
+            }
+        });
+        
     });
-
 
 });
 

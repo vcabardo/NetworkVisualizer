@@ -45,59 +45,59 @@
                   </li>
                 </ul>
                 <form class="form-inline my-2 my-lg-0 flex-row">
-                  <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-                  <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search Graphs</button>
+                  <input id="searchbar" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                  <button class="btn btn-outline-success my-2 my-sm-0" type="button" onclick="search()">Search Graphs</button>
                 </form>
               </div>
             </nav>
           </div>
           <div class="row">
             <div id="mynetwork"></div>
+            <div id="network-popUp" style="display: none;">
+              <span id="operation">Edit Node</span> <br>
+              <div id="nodeEdit" style="display: none;">
+              <table style="margin: auto">
+                <tbody><tr>
+                  <td>id</td>
+                  <td><input id="node-id" value="new value"></td>
+                </tr>
+                <tr>
+                  <td>label</td>
+                  <td><input id="node-label" value="new value"></td>
+                </tr>
+              </tbody></table>
+              </div>
+              <div id="edgeEdit" style="display: none;">
+                <span id="edge-to">To: </span> <br>
+                <span id="edge-from">From: </span> <br>
+              <table style="margin: auto;">
+                <tbody>
+                <tr>
+                  <td>Size Value</td>
+                  <td><input id="edge-value" value="new value"></td>
+                </tr>
+              </tbody></table>
+            </div>
+              <input type="button" value="save" id="saveButton">
+              <input type="button" value="cancel" id="cancelButton">
+            </div>
+          </div>
+          <div class="row">
+            <input id="graph-name" value="">
+            <input type="button" value="Save Graph" id="saveGraphButton" onclick="saveGraph()">
           </div>
         </div>
       </div>
     </div>
 
 
-    <div id="mynetwork"></div>
-    <div id="network-popUp" style="display: none;">
-      <span id="operation">Edit Node</span> <br>
-      <div id="nodeEdit" style="display: none;">
-      <table style="margin: auto">
-        <tbody><tr>
-          <td>id</td>
-          <td><input id="node-id" value="new value"></td>
-        </tr>
-        <tr>
-          <td>label</td>
-          <td><input id="node-label" value="new value"></td>
-        </tr>
-      </tbody></table>
-      </div>
-      <div id="edgeEdit" style="display: none;">
-        <span id="edge-to">To: </span> <br>
-        <span id="edge-from">From: </span> <br>
-      <table style="margin: auto;">
-        <tbody>
-        <tr>
-          <td>Size Value</td>
-          <td><input id="edge-value" value="new value"></td>
-        </tr>
-      </tbody></table>
-    </div>
-      <input type="button" value="save" id="saveButton">
-      <input type="button" value="cancel" id="cancelButton">
-    </div>
+
     <script type="text/javascript">
       var nodes = []
       var edges =[]
-      <% for(var i=0; i<nodes.length; i++) { %>
-            nodes.push({id:"<%=nodes[i].id %>", label:"<%=nodes[i].label%>"});
-      <%}%>
-      <% for(var i=0; i<edges.length; i++) { %>
-            edges.push({from:"<%=edges[i].from %>", to:"<%=edges[i].to%>", value:"<%=edges[i].value%>"});
-      <%}%>
+      var graphName = ''
 
+      var count = nodes.length;
       // create an array with nodes
       nodes = new vis.DataSet(nodes);
 
@@ -115,7 +115,9 @@
       var options = {
         manipulation: {
           addNode: function(nodeData,callback) {
-            nodeData.label = 'hello world';
+            count += 1;
+            nodeData.id = count;
+            nodeData.label = 'Node'+count;
             callback(nodeData);
           },
           editNode: function(nodeData,callback) {
@@ -136,6 +138,7 @@
           },
           addEdge: function(edgeData,callback) {
             if (edgeData.from !== edgeData.to) {
+              edgeData.value = 1
               callback(edgeData);
             }
           },
@@ -181,6 +184,7 @@
       function saveNodeData(data, callback) {
         data.id = document.getElementById("node-id").value;
         data.label = document.getElementById("node-label").value;
+        //nodes.add({id: data.id, label: data.label})
         clearPopUp();
         callback(data);
       }
@@ -189,6 +193,58 @@
         clearPopUp();
         callback(data);
       }
+      function saveGraph() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "graphs", true);
+        xhr.setRequestHeader("Content-type", "application/json");
+        xhr.onreadystatechange = function(){
+          var elem = document.getElementById("Response");
+          if (this.readyState == 4 && this.status == 200) {
+            //elem.innerHTML = this.responseText;
+          }
+          //else elem.innerHTML = "Hello, you did a search";
+
+        }
+        var nodeview = new vis.DataView(nodes, {
+          fields:['id', 'label']
+        });
+
+        var edgeview = new vis.DataView(edges, {
+          fields:['to', 'from', 'value']
+        });
+        graphName = document.getElementById("graph-name").value
+        var graphs = { name: graphName, nodes: nodeview.get(), edges: edgeview.get()};
+        // Send the request to send-ajax-data.php
+        xhr.send(JSON.stringify(graphs));
+      }
+
+      function search(){
+            // Initialize a POST Ajax request
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "search", true);
+            xhr.setRequestHeader("Content-type", "application/json");
+            var name = document.getElementById("searchbar").value;
+            xhr.onreadystatechange = function(){
+                var elem = document.getElementById("Response");
+                if (this.readyState == 4 && this.status == 200) {
+                  var response = JSON.parse(this.responseText);
+                  graphName = response.name
+                  document.getElementById("graph-name").value = graphName;
+                  nodes = response.nodes;
+                  edges = response.edges;
+                  nodes = new vis.DataSet(nodes);
+                  edges = new vis.DataSet(edges);
+                  data = {
+                    nodes: nodes,
+                    edges: edges,
+                  };            
+                  network = new vis.Network(container, data, options);
+                }
+              }
+            var dat = { name: name};
+            // Send the request to send-ajax-data.php
+            xhr.send(JSON.stringify(dat));
+        }      
     </script>
 
     <script src="scripts/network_logic.js"></script>
