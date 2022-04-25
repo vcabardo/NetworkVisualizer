@@ -68,7 +68,7 @@ app.get('/', function(req, res){
 app.get("/view", function(req, res){
   res.render("pages/network", {
       nodes: nodes,
-      edges: edges, 
+      edges: edges,
       name: name
   });
 });
@@ -114,13 +114,13 @@ app.post('/upload', function(req, res){
             input: fs.createReadStream(newpath),
             console: false
         });
-        
+
         edges = [];
         nodes = [];
         nodeCount = 1;
         gettingNodeCount = false;
         buildingNetworkTopo = false;
-        
+
         rd.on('line', function(line) {
             //console.log(line);
             if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
@@ -132,20 +132,23 @@ app.post('/upload', function(req, res){
             }
             else if( line.substring( 0,7 ) == "BEG_001" ) { buildingNetworkTopo = true;}
             else if( line.substring( 0,7 ) == "END_001" ) { buildingNetworkTopo = false; console.log(edges);}
-            else if (line.substring( 0,7 ) == "END_101") { 
+            else if (line.substring( 0,7 ) == "END_101") {
                 //res.render("pages/upload");
                 name = files.filetoupload.originalFilename;
 
                 var newGraph = new model({name: files.filetoupload.originalFilename, nodes: nodes, edges: edges});
                 newGraph.save().then(function(){
-                    res.send("Added new graph to database!");
+                    res.render("pages/fileuploadconfirmation", {
+                      nodes: nodes,
+                      edges: edges
+                    })
                 }).catch(function(err){
                     console.error(err.stack)
                 });
             }
 
             else if ( gettingNodeCount == true ) {
-        
+
                     // Getting number of nodes to create
                     netParams = line.split(" ");
                     nodeCount = netParams[1];
@@ -156,7 +159,7 @@ app.post('/upload', function(req, res){
                 edges.push({from:netParams[0], to:netParams[1], value:1})
             }
         });
-        
+
     });
 
 });
