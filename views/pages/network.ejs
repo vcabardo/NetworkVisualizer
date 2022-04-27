@@ -57,7 +57,7 @@
             <input id="graph-name" value="">
             <input type="button" value="Save Graph" id="saveGraphButton" onclick="saveGraph()">
           </div>
-          
+
           <div class="row">
             <div id="mynetwork"></div>
             <div id="network-popUp" style="display: none;">
@@ -166,10 +166,18 @@
 
           }
         }
-        }
+      },
+
+      layout: {
+        randomSeed: 5
+      },
+
+      physics: false
       };
 
       var network = new vis.Network(container, data, options);
+
+      network.stabilize();
 
       function clearPopUp() {
         document.getElementById("saveButton").onclick = null;
