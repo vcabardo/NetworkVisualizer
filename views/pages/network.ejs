@@ -56,6 +56,7 @@
             <h6 class="text-white">Rename graph:</h6>
             <input id="graph-name" value="">
             <input type="button" value="Save Graph" id="saveGraphButton" onclick="saveGraph()">
+            <input type="button" value="Download Graph" id="downloadGraphButton" onclick="downloadGraph()">
           </div>
 
           <div class="row">
@@ -229,6 +230,31 @@
         xhr.send(JSON.stringify(graphs));
       }
 
+      function downloadGraph() {
+        var nodeview = new vis.DataView(nodes, {
+          fields:['id', 'label']
+        });
+
+        var edgeview = new vis.DataView(edges, {
+          fields:['to', 'from', 'value']
+        });
+        graphName = document.getElementById("graph-name").value
+        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n";
+        fileText += "BEG_001\n";
+        edgeview.forEach(edge => {
+          fileText+= edge.to + " " + edge.from + " " + edge.value + " 10\n" 
+        });
+        fileText += "END_001\n";
+        fileText += "END_101\n";
+
+        const a = document.createElement('a');
+        const file = new Blob([fileText], {type: 'text/plain'});
+        a.href= URL.createObjectURL(file);
+        a. download = graphName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+
+      }
       function search(){
             // Initialize a POST Ajax request
             var xhr = new XMLHttpRequest();
