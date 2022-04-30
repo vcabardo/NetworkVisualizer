@@ -177,8 +177,14 @@
       };
 
       var network = new vis.Network(container, data, options);
-
+      network.on("dragEnd", function (params) {
+        if(params.nodes > 0){
+          //TODO sav graph
+        }
+      });
       network.stabilize();
+
+
 
       function clearPopUp() {
         document.getElementById("saveButton").onclick = null;
@@ -212,14 +218,17 @@
         xhr.onreadystatechange = function(){
           var elem = document.getElementById("Response");
           if (this.readyState == 4 && this.status == 200) {
-            //elem.innerHTML = this.responseText;
           }
-          //else elem.innerHTML = "Hello, you did a search";
 
         }
         var nodeview = new vis.DataView(nodes, {
-          fields:['id', 'label']
+          fields:['id', 'label', 'x', 'y']
         });
+        nodeview.forEach(node => {
+          var positions = network.getPosition(node.id);
+          node.x = positions.x;
+          node.y = positions.y;
+        });;
 
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
@@ -232,14 +241,26 @@
 
       function downloadGraph() {
         var nodeview = new vis.DataView(nodes, {
-          fields:['id', 'label']
+          fields:['id', 'label', 'x', 'y']
         });
+        nodeview.forEach(node => {
+          var positions = network.getPosition(node.id);
+          node.x = positions.x;
+          node.y = positions.y;
+        });;
 
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
         fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n";
+
+        fileText += "BEG_200\n";
+        nodeview.forEach(node => {
+          fileText+= node.id + " " + node.x + " " + node.y + "\n" 
+        });
+        fileText += "END_200\n";
+
         fileText += "BEG_001\n";
         edgeview.forEach(edge => {
           fileText+= edge.to + " " + edge.from + " " + edge.value + " 10\n" 
@@ -255,6 +276,7 @@
         URL.revokeObjectURL(a.href);
 
       }
+
       function search(){
             // Initialize a POST Ajax request
             var xhr = new XMLHttpRequest();
@@ -267,7 +289,18 @@
                   var response = JSON.parse(this.responseText);
                   graphName = response.name
                   document.getElementById("graph-name").value = graphName;
-                  nodes = response.nodes;
+                  coordinates = response.coordinates;
+                  nodes = [];
+                  for (var i of response.nodes) {
+                    if (coordinates == true){
+                      nodes.push(i);
+                    }
+                    else{
+                      nodes.push({id: i.id, label: i.label});
+                    }
+                  }
+
+                  //nodes = response.nodes;
                   edges = response.edges;
                   nodes = new vis.DataSet(nodes);
                   edges = new vis.DataSet(edges);
@@ -276,6 +309,11 @@
                     edges: edges,
                   };
                   network = new vis.Network(container, data, options);
+                  network.on("dragEnd", function (params) {
+                    if(params.nodes > 0){
+                      //TODO: save graph
+                    }
+                  });
                 }
               }
             var dat = { name: name};
