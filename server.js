@@ -14,10 +14,6 @@ var model = require("./models/graphs");
 var fs = require('fs'),
     readline = require('readline');
 
-var rd = readline.createInterface({
-    input: fs.createReadStream('Topo20-power.txt'),
-    console: false
-});
 
 var edges = [];
 var nodes = [];
@@ -25,30 +21,7 @@ var nodeCount = 1;
 var gettingNodeCount = false;
 var buildingNetworkTopo = false;
 var name = 'Test';
-rd.on('line', function(line) {
-    //console.log(line);
-    if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
-    else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
-        for (let i = 1; i <= nodeCount; i++){
-            nodes.push({id: i, label: "Node"+i})
-        }
-        console.log(nodes)
-    }
-    else if( line.substring( 0,7 ) == "BEG_001" ) { buildingNetworkTopo = true;}
-    else if( line.substring( 0,7 ) == "END_001" ) { buildingNetworkTopo = false; console.log(edges);}
 
-    else if ( gettingNodeCount == true ) {
-
-            // Getting number of nodes to create
-            netParams = line.split(" ");
-            nodeCount = netParams[1];
-    }
-    else if ( buildingNetworkTopo == true ) {
-        // Building network topology
-        netParams = line.split(" ");
-        edges.push({from:netParams[0], to:netParams[1], value:1})
-    }
-});
 
 io.on('connection', function (socket) {
   var clients = socket.client.conn.emit.length;
@@ -79,7 +52,9 @@ app.get("/upload", function(req, res){
 
 app.post("/search", function(req, res){
     model.findOne({name: req.body.name}).then(function(entry){
-        res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges}));
+        if(entry){
+            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges}));
+        }
     });
 });
 
@@ -104,7 +79,7 @@ app.post('/upload', function(req, res){
         // oldpath : temporary folder to which file is saved to
         var oldpath = files.filetoupload.filepath;
         var newpath = form.uploadDir + files.filetoupload.originalFilename;
-
+        console.log(newpath);
         fs.rename(oldpath, newpath, function (err) {
             if (err) throw err;
         });
@@ -135,16 +110,19 @@ app.post('/upload', function(req, res){
             else if (line.substring( 0,7 ) == "END_101") {
                 //res.render("pages/upload");
                 name = files.filetoupload.originalFilename;
-
-                var newGraph = new model({name: files.filetoupload.originalFilename, nodes: nodes, edges: edges});
-                newGraph.save().then(function(){
+                var query = {'name': req.body.name};
+                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, nodes: nodes, edges: edges}, {upsert: true}, function(err, doc) {
                     res.render("pages/fileuploadconfirmation", {
-                      nodes: nodes,
-                      edges: edges
-                    })
+                        nodes: nodes,
+                        edges: edges
+                    });
                 }).catch(function(err){
-                    console.error(err.stack)
+                    // res.render("pages/fileuploadconfirmation", {
+                    //     nodes: nodes,
+                    //     edges: edges
+                    // });
                 });
+
             }
 
             else if ( gettingNodeCount == true ) {
@@ -159,6 +137,7 @@ app.post('/upload', function(req, res){
                 edges.push({from:netParams[0], to:netParams[1], value:1})
             }
         });
+
 
     });
 
