@@ -2,9 +2,12 @@ var mongoose = require("mongoose");
 
 var graphsSchema = new mongoose.Schema({
     name: { type : String , unique : true, required : true },
+    coordinates: Boolean,
     nodes: [{
     id : Number,
-    label : String
+    label : String,
+    x: Number, 
+    y: Number
 }],
     edges: [{
     from : Number,
