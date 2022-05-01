@@ -9,6 +9,11 @@ var path = require('path');
 
 mongoose.connect('mongodb://localhost:27017/', {useNewUrlParser: true}).catch(error => console.log("Something went wrong: " + error));
 
+// mongoose.connect('mongodb://localhost:27017/',function(){
+//     /* Drop the DB */
+//     mongoose.connection.db.dropDatabase();
+// });
+
 var model = require("./models/graphs");
 
 var fs = require('fs'),
@@ -39,11 +44,18 @@ app.get('/', function(req, res){
 });
 
 app.get("/view", function(req, res){
-  res.render("pages/network", {
-      nodes: nodes,
-      edges: edges,
-      name: name
+  model.listAllGraphs().then(function(graphs){
+    res.render("pages/network", {
+        nodes: nodes,
+        edges: edges,
+        name: name,
+        graphs: graphs
+    });
+  }).catch(function(error){
+      res.error("Something went wrong!" + error );
   });
+
+
 });
 
 app.get("/upload", function(req, res){
@@ -53,8 +65,18 @@ app.get("/upload", function(req, res){
 app.post("/search", function(req, res){
     model.findOne({name: req.body.name}).then(function(entry){
         if(entry){
-            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges}));
+            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges, coordinates: entry.coordinates}));
         }
+    });
+});
+
+app.post("/delete", function(req, res){
+    model.deleteOne({name: req.body.name}).then(function(entry) {
+      model.listAllGraphs().then(function(graphs){
+          res.render("pages/list", {graphs:graphs});
+      }).catch(function(error){
+          res.error("Something went wrong!" + error );
+      });
     });
 });
 
@@ -79,10 +101,8 @@ app.post('/upload', function(req, res){
         // oldpath : temporary folder to which file is saved to
         var oldpath = files.filetoupload.filepath;
         var newpath = form.uploadDir + files.filetoupload.originalFilename;
-        console.log(newpath);
-        fs.rename(oldpath, newpath, function (err) {
-            if (err) throw err;
-        });
+
+        fs.renameSync(oldpath, newpath);
 
         // TODO: parse uploaded file, save contents to db
         rd = readline.createInterface({
@@ -95,9 +115,10 @@ app.post('/upload', function(req, res){
         nodeCount = 1;
         gettingNodeCount = false;
         buildingNetworkTopo = false;
+        var gettingCoordinates = false;
+        var coordinates = false;
 
         rd.on('line', function(line) {
-            //console.log(line);
             if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
             else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
                 for (let i = 1; i <= nodeCount; i++){
@@ -107,23 +128,8 @@ app.post('/upload', function(req, res){
             }
             else if( line.substring( 0,7 ) == "BEG_001" ) { buildingNetworkTopo = true;}
             else if( line.substring( 0,7 ) == "END_001" ) { buildingNetworkTopo = false; console.log(edges);}
-            else if (line.substring( 0,7 ) == "END_101") {
-                //res.render("pages/upload");
-                name = files.filetoupload.originalFilename;
-                var query = {'name': req.body.name};
-                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, nodes: nodes, edges: edges}, {upsert: true}, function(err, doc) {
-                    res.render("pages/fileuploadconfirmation", {
-                        nodes: nodes,
-                        edges: edges
-                    });
-                }).catch(function(err){
-                    // res.render("pages/fileuploadconfirmation", {
-                    //     nodes: nodes,
-                    //     edges: edges
-                    // });
-                });
-
-            }
+            else if( line.substring( 0,7 ) == "BEG_200" ) {gettingCoordinates = true; coordinates = true}
+            else if( line.substring( 0,7 ) == "END_200" ) { gettingCoordinates = false; console.log(nodes);}
 
             else if ( gettingNodeCount == true ) {
 
@@ -131,10 +137,37 @@ app.post('/upload', function(req, res){
                     netParams = line.split(" ");
                     nodeCount = netParams[1];
             }
+
             else if ( buildingNetworkTopo == true ) {
                 // Building network topology
                 netParams = line.split(" ");
-                edges.push({from:netParams[0], to:netParams[1], value:1})
+                edges.push({from:netParams[0], to:netParams[1], value:netParams[2]})
+            }
+
+            else if ( gettingCoordinates == true ) {
+                // Building network topology
+                netParams = line.split(" ");
+                nodes[Number(netParams[0])-1].x = netParams[1];
+                nodes[Number(netParams[0])-1].y = netParams[2];
+            }
+
+            else if (line.substring( 0,7 ) == "END_101") {
+                name = files.filetoupload.originalFilename;
+                var query = {'name': req.body.name};
+                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, coordinates: coordinates, nodes: nodes, edges: edges}, {upsert: true}, function(err, doc) {
+                    res.render("pages/fileuploadconfirmation", {
+                        nodes: nodes,
+                        edges: edges,
+                        coordinates: coordinates
+                    });
+                }).catch(function(err){
+                });
+                try {
+                    fs.unlinkSync(newpath)
+                    //file removed
+                  } catch(err) {
+                    console.error(err)
+                  }
             }
         });
 
@@ -146,6 +179,7 @@ app.post('/upload', function(req, res){
 app.get("/list", function(req,res) {
     model.listAllGraphs().then(function(graphs){
         res.render("pages/list", {graphs:graphs});
+        console.log(graphs);
     }).catch(function(error){
         res.error("Something went wrong!" + error );
     });

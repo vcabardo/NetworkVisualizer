@@ -4,7 +4,9 @@ var graphsSchema = new mongoose.Schema({
     name: { type : String , unique : true, required : true },
     nodes: [{
     id : Number,
-    label : String
+    label : String,
+    x: Number,
+    y: Number
 }],
     edges: [{
     from : Number,
