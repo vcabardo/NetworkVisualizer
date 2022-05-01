@@ -125,6 +125,7 @@
             nodeData.id = count;
             nodeData.label = 'Node'+count;
             callback(nodeData);
+            saveGraph();
           },
           editNode: function(nodeData,callback) {
             document.getElementById("operation").innerText = "Edit Node";
@@ -146,6 +147,7 @@
             if (edgeData.from !== edgeData.to) {
               edgeData.value = 1
               callback(edgeData);
+              saveGraph();
             }
           },
           editEdge: function(edgeData,callback) {
@@ -181,7 +183,7 @@
       var network = new vis.Network(container, data, options);
       network.on("dragEnd", function (params) {
         if(params.nodes > 0){
-          //TODO sav graph
+          saveGraph();
         }
       });
       network.stabilize();
@@ -207,11 +209,13 @@
         //nodes.add({id: data.id, label: data.label})
         clearPopUp();
         callback(data);
+        saveGraph();
       }
       function saveEdgeData(data, callback) {
         data.value = document.getElementById("edge-value").value;
         clearPopUp();
         callback(data);
+        saveGraph();
       }
       function saveGraph() {
         var xhr = new XMLHttpRequest();
@@ -329,7 +333,7 @@
                   network = new vis.Network(container, data, options);
                   network.on("dragEnd", function (params) {
                     if(params.nodes > 0){
-                      //TODO: save graph
+                      saveGraph();
                     }
                   });
                   network.stabilize();
