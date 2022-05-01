@@ -4,16 +4,18 @@ var graphsSchema = new mongoose.Schema({
     name: { type : String , unique : true, required : true },
     coordinates: Boolean,
     nodes: [{
-    id : Number,
-    label : String,
-    x: Number, 
-    y: Number
-}],
+        id : Number,
+        label : String,
+        x: Number, 
+        y: Number
+    }],
     edges: [{
-    from : Number,
-    to : Number,
-    value : Number
-}]
+        from : Number,
+        to : Number,
+        value : Number
+    }], 
+    nodeType1: [Number],
+    nodeType2: [Number]
 
 });
 

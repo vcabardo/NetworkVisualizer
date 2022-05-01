@@ -99,6 +99,8 @@
     <script type="text/javascript">
       var nodes = []
       var edges =[]
+      var nodeType1=[]
+      var nodeType2=[]
       var graphName = ''
 
       var count = nodes.length;
@@ -234,7 +236,7 @@
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
-        var graphs = { name: graphName, nodes: nodeview.get(), edges: edgeview.get()};
+        var graphs = { name: graphName, coordinates: true, nodes: nodeview.get(), edges: edgeview.get()};
         // Send the request to send-ajax-data.php
         xhr.send(JSON.stringify(graphs));
       }
@@ -253,19 +255,32 @@
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
-        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n";
+        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n\n";
 
         fileText += "BEG_200\n";
         nodeview.forEach(node => {
           fileText+= node.id + " " + node.x + " " + node.y + "\n" 
         });
-        fileText += "END_200\n";
+        fileText += "END_200\n\n";
 
         fileText += "BEG_001\n";
         edgeview.forEach(edge => {
           fileText+= edge.to + " " + edge.from + " " + edge.value + " 10\n" 
         });
-        fileText += "END_001\n";
+        fileText += "END_001\n\n";
+
+        fileText += "BEG_002\n";
+        nodeType1.forEach(node => {
+          fileText+= node +"\n" 
+        });
+        fileText += "END_002\n\n";
+
+        fileText += "BEG_003\n";
+        nodeType2.forEach(node => {
+          fileText+= node +"\n" 
+        });
+        fileText += "END_002\n\n";
+
         fileText += "END_101\n";
 
         const a = document.createElement('a');
@@ -302,6 +317,9 @@
 
                   //nodes = response.nodes;
                   edges = response.edges;
+                  nodeType1 = response.nodeType1;
+                  nodeType2 = response.nodeType2;
+
                   nodes = new vis.DataSet(nodes);
                   edges = new vis.DataSet(edges);
                   data = {
@@ -314,12 +332,16 @@
                       //TODO: save graph
                     }
                   });
+                  network.stabilize();
                 }
               }
             var dat = { name: name};
             // Send the request to send-ajax-data.php
             xhr.send(JSON.stringify(dat));
         }
+
+    function setTypes(){
+    }
     </script>
 
     <!-- Latest compiled and minified CSS -->

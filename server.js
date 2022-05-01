@@ -53,7 +53,9 @@ app.get("/upload", function(req, res){
 app.post("/search", function(req, res){
     model.findOne({name: req.body.name}).then(function(entry){
         if(entry){
-            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges, coordinates: entry.coordinates}));
+            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, 
+                                    edges: entry.edges, coordinates: entry.coordinates, 
+                                    nodeType1: entry.nodeType1, nodeType2: entry.nodeType2}));
         }
     });
 });
@@ -89,17 +91,21 @@ app.post('/upload', function(req, res){
 
         edges = [];
         nodes = [];
+        nodeType1 = [];
+        nodeType2 = [];
         nodeCount = 1;
         gettingNodeCount = false;
         buildingNetworkTopo = false;
         var gettingCoordinates = false;
         var coordinates = false;
+        var setType1 = false;
+        var setType2 = false;
 
         rd.on('line', function(line) {
             if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
             else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
                 for (let i = 1; i <= nodeCount; i++){
-                    nodes.push({id: i, label: "Node"+i})
+                    nodes.push({id: i, label: "Node"+i, x: 0, y:0})
                 }
                 console.log(nodes)
             }
@@ -108,6 +114,12 @@ app.post('/upload', function(req, res){
 
             else if( line.substring( 0,7 ) == "BEG_200" ) {gettingCoordinates = true; coordinates = true}
             else if( line.substring( 0,7 ) == "END_200" ) { gettingCoordinates = false; console.log(nodes);}
+
+            else if( line.substring( 0,7 ) == "BEG_002" ) { setType1 = true;}
+            else if( line.substring( 0,7 ) == "END_002" ) { setType1 = false; console.log(nodeType1);}
+
+            else if( line.substring( 0,7 ) == "BEG_003" ) { setType2 = true;}
+            else if( line.substring( 0,7 ) == "END_003" ) { setType2 = false; console.log(nodeType2);}
 
             else if ( gettingNodeCount == true ) {
 
@@ -122,16 +134,29 @@ app.post('/upload', function(req, res){
             }
 
             else if ( gettingCoordinates == true ) {
-                // Building network topology
                 netParams = line.split(" ");
                 nodes[Number(netParams[0])-1].x = netParams[1];
                 nodes[Number(netParams[0])-1].y = netParams[2];
             }
 
+            else if ( setType1 == true ) {
+                netParams = line.split(" ");
+                nodeType1.push(Number(netParams[0]));
+            }
+
+            else if ( setType2 == true ) {
+                netParams = line.split(" ");
+                nodeType2.push(Number(netParams[0]));
+            }
+
             else if (line.substring( 0,7 ) == "END_101") {
                 name = files.filetoupload.originalFilename;
-                var query = {'name': req.body.name};
-                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, coordinates: coordinates, nodes: nodes, edges: edges}, {upsert: true}, function(err, doc) {
+                var query = {'name': name};
+                model.findOneAndUpdate(query,{name: name, 
+                                        coordinates: coordinates, nodes: nodes, edges: edges, 
+                                        nodeType1: nodeType1, nodeType2: nodeType2},
+                                        {upsert: true}, function(err, doc) {
+
                     res.render("pages/fileuploadconfirmation", {
                         nodes: nodes,
                         edges: edges,
