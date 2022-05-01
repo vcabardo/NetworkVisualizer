@@ -100,6 +100,8 @@
     <script type="text/javascript">
       var nodes = []
       var edges =[]
+      var nodeType1=[]
+      var nodeType2=[]
       var graphName = ''
 
       var count = nodes.length;
@@ -124,6 +126,7 @@
             nodeData.id = count;
             nodeData.label = 'Node'+count;
             callback(nodeData);
+            saveGraph();
           },
           editNode: function(nodeData,callback) {
             document.getElementById("operation").innerText = "Edit Node";
@@ -145,6 +148,7 @@
             if (edgeData.from !== edgeData.to) {
               edgeData.value = 1
               callback(edgeData);
+              saveGraph();
             }
           },
           editEdge: function(edgeData,callback) {
@@ -172,25 +176,20 @@
 
       layout: {
         randomSeed: 5
-      }
+      },
+
+      physics: false
       };
 
       var network = new vis.Network(container, data, options);
-
       network.on("dragEnd", function (params) {
         if(params.nodes > 0){
-          //TODO sav graph
+          saveGraph();
         }
       });
+      network.stabilize();
 
-      var fitOption = {
-          nodes: nodes.getIds() //nodes is type of vis.DataSet contains all the nodes
-      }
 
-      network.fit(fitOption);
-      // network.setOptions({
-      //       physics: {enabled:false}
-      // });
 
       function clearPopUp() {
         document.getElementById("saveButton").onclick = null;
@@ -211,11 +210,13 @@
         //nodes.add({id: data.id, label: data.label})
         clearPopUp();
         callback(data);
+        saveGraph();
       }
       function saveEdgeData(data, callback) {
         data.value = document.getElementById("edge-value").value;
         clearPopUp();
         callback(data);
+        saveGraph();
       }
       function saveGraph() {
         var xhr = new XMLHttpRequest();
@@ -224,14 +225,17 @@
         xhr.onreadystatechange = function(){
           var elem = document.getElementById("Response");
           if (this.readyState == 4 && this.status == 200) {
-            //elem.innerHTML = this.responseText;
           }
-          //else elem.innerHTML = "Hello, you did a search";
 
         }
         var nodeview = new vis.DataView(nodes, {
           fields:['id', 'label', 'x', 'y']
         });
+        nodeview.forEach(node => {
+          var positions = network.getPosition(node.id);
+          node.x = positions.x;
+          node.y = positions.y;
+        });;
 
         nodeview.forEach(node => {
          var positions = network.getPosition(node.id);
@@ -243,7 +247,7 @@
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
-        var graphs = { name: graphName, nodes: nodeview.get(), edges: edgeview.get()};
+        var graphs = { name: graphName, coordinates: true, nodes: nodeview.get(), edges: edgeview.get()};
         // Send the request to send-ajax-data.php
         xhr.send(JSON.stringify(graphs));
       }
@@ -252,6 +256,11 @@
         var nodeview = new vis.DataView(nodes, {
           fields:['id', 'label', 'x', 'y']
         });
+        nodeview.forEach(node => {
+          var positions = network.getPosition(node.id);
+          node.x = positions.x;
+          node.y = positions.y;
+        });;
 
         nodeview.forEach(node => {
          var positions = network.getPosition(node.id);
@@ -263,19 +272,32 @@
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
-        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n";
+        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n\n";
 
         fileText += "BEG_200\n";
         nodeview.forEach(node => {
           fileText+= node.id + " " + node.x + " " + node.y + "\n"
         });
-        fileText += "END_200\n";
+        fileText += "END_200\n\n";
 
         fileText += "BEG_001\n";
         edgeview.forEach(edge => {
           fileText+= edge.to + " " + edge.from + " " + edge.value + " 10\n"
         });
-        fileText += "END_001\n";
+        fileText += "END_001\n\n";
+
+        fileText += "BEG_002\n";
+        nodeType1.forEach(node => {
+          fileText+= node +"\n"
+        });
+        fileText += "END_002\n\n";
+
+        fileText += "BEG_003\n";
+        nodeType2.forEach(node => {
+          fileText+= node +"\n"
+        });
+        fileText += "END_002\n\n";
+
         fileText += "END_101\n";
 
         const a = document.createElement('a');
@@ -286,6 +308,7 @@
         URL.revokeObjectURL(a.href);
 
       }
+
       function search(){
             // Initialize a POST Ajax request
             var xhr = new XMLHttpRequest();
@@ -298,7 +321,6 @@
                   var response = JSON.parse(this.responseText);
                   graphName = response.name
                   document.getElementById("graph-name").value = graphName;
-                  
                   coordinates = response.coordinates;
                   nodes = [];
                   for (var i of response.nodes) {
@@ -311,8 +333,10 @@
                   }
 
                   //nodes = response.nodes;
-
                   edges = response.edges;
+                  nodeType1 = response.nodeType1;
+                  nodeType2 = response.nodeType2;
+
                   nodes = new vis.DataSet(nodes);
                   edges = new vis.DataSet(edges);
                   data = {
@@ -320,6 +344,12 @@
                     edges: edges,
                   };
                   network = new vis.Network(container, data, options);
+                  network.on("dragEnd", function (params) {
+                    if(params.nodes > 0){
+                      saveGraph();
+                    }
+                  });
+                  network.stabilize();
                 }
               }
             var dat = { name: name};
@@ -353,6 +383,9 @@
               var dat = { name: name};
               // Send the request to send-ajax-data.php
               xhr.send(JSON.stringify(dat));
+          }
+
+          function setTypes(){
           }
     </script>
 
