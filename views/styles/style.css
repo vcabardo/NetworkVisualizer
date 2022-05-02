@@ -18,5 +18,10 @@
 
 #mynetwork {
   width: inherit;
-  height: 20%;
+  height: 600px;
+}
+
+#uploadnetwork {
+  width: inherit;
+  height: 600px;
 }

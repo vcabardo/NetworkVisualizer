@@ -9,6 +9,11 @@ var path = require('path');
 
 mongoose.connect('mongodb://localhost:27017/', {useNewUrlParser: true}).catch(error => console.log("Something went wrong: " + error));
 
+// mongoose.connect('mongodb://localhost:27017/',function(){
+//     /* Drop the DB */
+//     mongoose.connection.db.dropDatabase();
+// });
+
 var model = require("./models/graphs");
 
 var fs = require('fs'),
@@ -39,11 +44,18 @@ app.get('/', function(req, res){
 });
 
 app.get("/view", function(req, res){
-  res.render("pages/network", {
-      nodes: nodes,
-      edges: edges,
-      name: name
+  model.listAllGraphs().then(function(graphs){
+    res.render("pages/network", {
+        nodes: nodes,
+        edges: edges,
+        name: name,
+        graphs: graphs
+    });
+  }).catch(function(error){
+      res.error("Something went wrong!" + error );
   });
+
+
 });
 
 app.get("/upload", function(req, res){
@@ -53,8 +65,21 @@ app.get("/upload", function(req, res){
 app.post("/search", function(req, res){
     model.findOne({name: req.body.name}).then(function(entry){
         if(entry){
-            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes, edges: entry.edges, coordinates: entry.coordinates}));
+        console.log(entry.nodeType1)
+            res.send(JSON.stringify({name: entry.name, nodes: entry.nodes,
+                                    edges: entry.edges, coordinates: entry.coordinates,
+                                    nodeType1: entry.nodeType1, nodeType2: entry.nodeType2}));
         }
+    });
+});
+
+app.post("/delete", function(req, res){
+    model.deleteOne({name: req.body.name}).then(function(entry) {
+      model.listAllGraphs().then(function(graphs){
+          res.render("pages/list", {graphs:graphs});
+      }).catch(function(error){
+          res.error("Something went wrong!" + error );
+      });
     });
 });
 
@@ -89,17 +114,22 @@ app.post('/upload', function(req, res){
 
         edges = [];
         nodes = [];
+        nodeType1 = [];
+        nodeType2 = [];
         nodeCount = 1;
         gettingNodeCount = false;
         buildingNetworkTopo = false;
         var gettingCoordinates = false;
         var coordinates = false;
+        var setType1 = false;
+        var setType2 = false;
+
 
         rd.on('line', function(line) {
             if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
             else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
                 for (let i = 1; i <= nodeCount; i++){
-                    nodes.push({id: i, label: "Node"+i})
+                    nodes.push({id: i, label: "Node"+i, x: 0, y:0})
                 }
                 console.log(nodes)
             }
@@ -109,16 +139,92 @@ app.post('/upload', function(req, res){
             else if( line.substring( 0,7 ) == "BEG_200" ) {gettingCoordinates = true; coordinates = true}
             else if( line.substring( 0,7 ) == "END_200" ) { gettingCoordinates = false; console.log(nodes);}
 
+
+            else if( line.substring( 0,7 ) == "BEG_002" ) { setType1 = true;}
+            else if( line.substring( 0,7 ) == "END_002" ) { setType1 = false; console.log(nodeType1);}
+
+            else if( line.substring( 0,7 ) == "BEG_003" ) { setType2 = true;}
+            else if( line.substring( 0,7 ) == "END_003" ) { setType2 = false; console.log(nodeType2);}
+
             else if ( gettingNodeCount == true ) {
 
                     // Getting number of nodes to create
                     netParams = line.split(" ");
                     nodeCount = netParams[1];
             }
+
             else if ( buildingNetworkTopo == true ) {
                 // Building network topology
                 netParams = line.split(" ");
                 edges.push({from:netParams[0], to:netParams[1], value:netParams[2]})
+            }
+
+            else if ( gettingCoordinates == true ) {
+                // Building network topology
+                netParams = line.split(" ");
+                nodes[Number(netParams[0])-1].x = netParams[1];
+                nodes[Number(netParams[0])-1].y = netParams[2];
+            }
+
+            else if (line.substring( 0,7 ) == "END_101") {
+                name = files.filetoupload.originalFilename;
+                var query = {'name': req.body.name};
+                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, coordinates: coordinates, nodes: nodes, edges: edges, nodeType1: nodeType1, nodeType2: nodeType2}, {upsert: true}, function(err, doc) {
+                    res.render("pages/fileuploadconfirmation", {
+                        nodes: nodes,
+                        edges: edges,
+                        coordinates: coordinates
+                    });
+                }).catch(function(err){
+                });
+                try {
+                    fs.unlinkSync(newpath)
+                    //file removed
+                  } catch(err) {
+                    console.error(err)
+                  }
+            }
+
+            else if ( gettingCoordinates == true ) {
+                netParams = line.split(" ");
+                nodes[Number(netParams[0])-1].x = netParams[1];
+                nodes[Number(netParams[0])-1].y = netParams[2];
+            }
+
+            else if ( setType1 == true ) {
+                netParams = line.split(" ");
+                nodeType1.push(Number(netParams[0]));
+                nodes[Number(netParams[0])-1].label = "server" + netParams[0];
+            }
+
+            else if ( setType2 == true ) {
+                netParams = line.split(" ");
+                nodeType2.push(Number(netParams[0]));
+                nodes[Number(netParams[0])-1].label = "client" + netParams[0];
+            }
+
+            else if (line.substring( 0,7 ) == "END_101") {
+                name = files.filetoupload.originalFilename;
+                var query = {'name': name};
+                model.findOneAndUpdate(query,{name: name,
+                                        coordinates: coordinates, nodes: nodes, edges: edges,
+                                        nodeType1: nodeType1, nodeType2: nodeType2},
+                                        {upsert: true}, function(err, doc) {
+
+                    res.render("pages/fileuploadconfirmation", {
+                        nodes: nodes,
+                        edges: edges,
+                        coordinates: coordinates
+                    });
+                }).catch(function(err){
+                });
+                try {
+                    fs.unlinkSync(newpath)
+                    //file removed
+                  } catch(err) {
+                    console.error(err)
+                  }
+
             }
 
             else if ( gettingCoordinates == true ) {
@@ -156,6 +262,7 @@ app.post('/upload', function(req, res){
 app.get("/list", function(req,res) {
     model.listAllGraphs().then(function(graphs){
         res.render("pages/list", {graphs:graphs});
+        console.log(graphs);
     }).catch(function(error){
         res.error("Something went wrong!" + error );
     });

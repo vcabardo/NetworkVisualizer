@@ -6,3 +6,7 @@ npm install vis-network
 npm install ejs
 npm install fs
 npm install formidable
+
+
+brew services start mongodb-community
+brew services stop mongodb-community

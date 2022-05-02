@@ -6,14 +6,16 @@ var graphsSchema = new mongoose.Schema({
     nodes: [{
     id : Number,
     label : String,
-    x: Number, 
+    x: Number,
     y: Number
 }],
     edges: [{
-    from : Number,
-    to : Number,
-    value : Number
-}]
+        from : Number,
+        to : Number,
+        value : Number
+    }],
+    nodeType1: [Number],
+    nodeType2: [Number]
 
 });
 

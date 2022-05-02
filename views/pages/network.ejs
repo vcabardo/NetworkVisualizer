@@ -21,14 +21,14 @@
 
         <div class="col-11 content bg-gradient">
           <div class="row">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <nav class="navbar navbar-expand-md navbar-light bg-light d-flex justify-content-around">
               <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
               data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
               aria-expanded="true">
                 <span class="navbar-toggler-icon"></span>
               </button>
 
-              <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <div class="collapse navbar-collapse d-flex justify-content-around" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto">
                   <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" id="navbarDropdown"
@@ -37,14 +37,23 @@
                       All Graphs
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                      <a class="dropdown-item" href="#">Graph</a>
-                      <a class="dropdown-item" href="#">Another graph</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
+                      <% for(graph of graphs) { %>
+                          <a class="dropdown-item" onclick="fetchDropdown(&quot;<%= graph.name %>&quot;)">
+                              <%= graph.name %>
+                          </a>
+                      <% } %>
                     </div>
                   </li>
                 </ul>
-                <form class="form-inline my-2 my-lg-0 flex-row">
+
+                <div class="navbar-nav me-auto">
+                  <h6>Rename graph:</h6>
+                  <input id="graph-name" value="">
+                  <input type="button" value="Save Graph" id="saveGraphButton" onclick="saveGraph()">
+                  <input type="button" value="Download Graph" id="downloadGraphButton" onclick="downloadGraph()">
+                </div>
+
+                <form class="mr-auto">
                   <input id="searchbar" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
                   <button class="btn btn-outline-success my-2 my-sm-0" type="button" onclick="search()">Search Graphs</button>
                 </form>
@@ -52,14 +61,8 @@
             </nav>
           </div>
 
-          <div class="row">
-            <h6 class="text-white">Rename graph:</h6>
-            <input id="graph-name" value="">
-            <input type="button" value="Save Graph" id="saveGraphButton" onclick="saveGraph()">
-            <input type="button" value="Download Graph" id="downloadGraphButton" onclick="downloadGraph()">
-          </div>
 
-          <div class="row">
+          <div class="row d-flex justify-content-center">
             <div id="mynetwork"></div>
             <div id="network-popUp" style="display: none;">
               <span id="operation">Edit Node</span> <br>
@@ -94,11 +97,11 @@
       </div>
     </div>
 
-
-
     <script type="text/javascript">
       var nodes = []
       var edges =[]
+      var nodeType1=[]
+      var nodeType2=[]
       var graphName = ''
 
       var count = nodes.length;
@@ -123,6 +126,7 @@
             nodeData.id = count;
             nodeData.label = 'Node'+count;
             callback(nodeData);
+            saveGraph();
           },
           editNode: function(nodeData,callback) {
             document.getElementById("operation").innerText = "Edit Node";
@@ -144,6 +148,7 @@
             if (edgeData.from !== edgeData.to) {
               edgeData.value = 1
               callback(edgeData);
+              saveGraph();
             }
           },
           editEdge: function(edgeData,callback) {
@@ -179,7 +184,8 @@
       var network = new vis.Network(container, data, options);
       network.on("dragEnd", function (params) {
         if(params.nodes > 0){
-          //TODO sav graph
+          saveGraph();
+
         }
       });
       network.stabilize();
@@ -205,11 +211,13 @@
         //nodes.add({id: data.id, label: data.label})
         clearPopUp();
         callback(data);
+        saveGraph();
       }
       function saveEdgeData(data, callback) {
         data.value = document.getElementById("edge-value").value;
         clearPopUp();
         callback(data);
+        saveGraph();
       }
       function saveGraph() {
         var xhr = new XMLHttpRequest();
@@ -230,11 +238,18 @@
           node.y = positions.y;
         });;
 
+        nodeview.forEach(node => {
+         var positions = network.getPosition(node.id);
+         node.x = positions.x;
+         node.y = positions.y;
+       });
+
+
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
-        var graphs = { name: graphName, nodes: nodeview.get(), edges: edgeview.get()};
+        var graphs = { name: graphName, coordinates: true, nodes: nodeview.get(), edges: edgeview.get()};
         // Send the request to send-ajax-data.php
         xhr.send(JSON.stringify(graphs));
       }
@@ -249,23 +264,44 @@
           node.y = positions.y;
         });;
 
+        nodeview.forEach(node => {
+         var positions = network.getPosition(node.id);
+         node.x = positions.x;
+         node.y = positions.y;
+       });;
+
+
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
         });
         graphName = document.getElementById("graph-name").value
-        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n";
+        fileText = "BEG_000\n1 " + nodes.length +"\nEND_000\n\n";
 
         fileText += "BEG_200\n";
         nodeview.forEach(node => {
-          fileText+= node.id + " " + node.x + " " + node.y + "\n" 
+          fileText+= node.id + " " + node.x + " " + node.y + "\n"
         });
-        fileText += "END_200\n";
+        fileText += "END_200\n\n";
+
 
         fileText += "BEG_001\n";
         edgeview.forEach(edge => {
-          fileText+= edge.to + " " + edge.from + " " + edge.value + " 10\n" 
+          fileText+= edge.to + " " + edge.from + " " + edge.value + " 10\n"
         });
-        fileText += "END_001\n";
+        fileText += "END_001\n\n";
+
+        fileText += "BEG_002\n";
+        nodeType1.forEach(node => {
+          fileText+= node +"\n"
+        });
+        fileText += "END_002\n\n";
+
+        fileText += "BEG_003\n";
+        nodeType2.forEach(node => {
+          fileText+= node +"\n"
+        });
+        fileText += "END_002\n\n";
+
         fileText += "END_101\n";
 
         const a = document.createElement('a');
@@ -302,6 +338,17 @@
 
                   //nodes = response.nodes;
                   edges = response.edges;
+                  nodeType1 = response.nodeType1;
+                  nodeType2 = response.nodeType2;
+                  
+                  for (var i of nodeType1) {
+                    nodes[i-1].color = "#FF0000"; 
+                  }
+                  for (var i of nodeType2) {
+                    nodes[i-1].color = "#FFFFF0"; 
+                    nodes[i-1].shape = "circularImage";
+                    nodes[i-1].image ="https://cdn.pixabay.com/photo/2018/10/02/15/18/cloud-3719093_1280.png";
+                  }
                   nodes = new vis.DataSet(nodes);
                   edges = new vis.DataSet(edges);
                   data = {
@@ -311,15 +358,49 @@
                   network = new vis.Network(container, data, options);
                   network.on("dragEnd", function (params) {
                     if(params.nodes > 0){
-                      //TODO: save graph
+                      saveGraph();
                     }
                   });
+                  network.stabilize();
                 }
               }
             var dat = { name: name};
             // Send the request to send-ajax-data.php
             xhr.send(JSON.stringify(dat));
         }
+
+        function fetchDropdown(graphName){
+              // Initialize a POST Ajax request
+              var xhr = new XMLHttpRequest();
+              xhr.open("POST", "search", true);
+              xhr.setRequestHeader("Content-type", "application/json");
+              var name = graphName;
+              xhr.onreadystatechange = function(){
+                  var elem = document.getElementById("Response");
+                  if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    graphName = response.name
+                    document.getElementById("graph-name").value = graphName;
+                    nodes = response.nodes;
+                    edges = response.edges;
+                    nodes = new vis.DataSet(nodes);
+                    edges = new vis.DataSet(edges);
+                    data = {
+                      nodes: nodes,
+                      edges: edges,
+                    };
+                    network = new vis.Network(container, data, options);
+                  }
+                }
+              var dat = { name: name};
+              // Send the request to send-ajax-data.php
+              xhr.send(JSON.stringify(dat));
+          }
+
+          function setType(node){
+            node.color = "#FF0000"; 
+            
+          }
     </script>
 
     <!-- Latest compiled and minified CSS -->
