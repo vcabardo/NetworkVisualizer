@@ -336,7 +336,15 @@
                   edges = response.edges;
                   nodeType1 = response.nodeType1;
                   nodeType2 = response.nodeType2;
-
+                  
+                  for (var i of nodeType1) {
+                    nodes[i-1].color = "#FF0000"; 
+                  }
+                  for (var i of nodeType2) {
+                    nodes[i-1].color = "#FFFFF0"; 
+                    nodes[i-1].shape = "circularImage";
+                    nodes[i-1].image ="https://cdn.pixabay.com/photo/2018/10/02/15/18/cloud-3719093_1280.png";
+                  }
                   nodes = new vis.DataSet(nodes);
                   edges = new vis.DataSet(edges);
                   data = {
@@ -385,7 +393,9 @@
               xhr.send(JSON.stringify(dat));
           }
 
-          function setTypes(){
+          function setType(node){
+            node.color = "#FF0000"; 
+            
           }
     </script>
 

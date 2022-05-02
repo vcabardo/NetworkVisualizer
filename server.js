@@ -65,6 +65,7 @@ app.get("/upload", function(req, res){
 app.post("/search", function(req, res){
     model.findOne({name: req.body.name}).then(function(entry){
         if(entry){
+        console.log(entry.nodeType1)
             res.send(JSON.stringify({name: entry.name, nodes: entry.nodes,
                                     edges: entry.edges, coordinates: entry.coordinates,
                                     nodeType1: entry.nodeType1, nodeType2: entry.nodeType2}));
@@ -166,7 +167,7 @@ app.post('/upload', function(req, res){
             else if (line.substring( 0,7 ) == "END_101") {
                 name = files.filetoupload.originalFilename;
                 var query = {'name': req.body.name};
-                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, coordinates: coordinates, nodes: nodes, edges: edges}, {upsert: true}, function(err, doc) {
+                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, coordinates: coordinates, nodes: nodes, edges: edges, nodeType1: nodeType1, nodeType2: nodeType2}, {upsert: true}, function(err, doc) {
                     res.render("pages/fileuploadconfirmation", {
                         nodes: nodes,
                         edges: edges,
@@ -191,11 +192,13 @@ app.post('/upload', function(req, res){
             else if ( setType1 == true ) {
                 netParams = line.split(" ");
                 nodeType1.push(Number(netParams[0]));
+                nodes[Number(netParams[0])-1].label = "server" + netParams[0];
             }
 
             else if ( setType2 == true ) {
                 netParams = line.split(" ");
                 nodeType2.push(Number(netParams[0]));
+                nodes[Number(netParams[0])-1].label = "client" + netParams[0];
             }
 
             else if (line.substring( 0,7 ) == "END_101") {
