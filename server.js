@@ -124,6 +124,7 @@ app.post('/upload', function(req, res){
         var setType1 = false;
         var setType2 = false;
 
+
         rd.on('line', function(line) {
             if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
             else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
@@ -137,6 +138,7 @@ app.post('/upload', function(req, res){
 
             else if( line.substring( 0,7 ) == "BEG_200" ) {gettingCoordinates = true; coordinates = true}
             else if( line.substring( 0,7 ) == "END_200" ) { gettingCoordinates = false; console.log(nodes);}
+
 
             else if( line.substring( 0,7 ) == "BEG_002" ) { setType1 = true;}
             else if( line.substring( 0,7 ) == "END_002" ) { setType1 = false; console.log(nodeType1);}
@@ -222,7 +224,34 @@ app.post('/upload', function(req, res){
                   } catch(err) {
                     console.error(err)
                   }
+
             }
+
+            else if ( gettingCoordinates == true ) {
+                // Building network topology
+                netParams = line.split(" ");
+                nodes[Number(netParams[0])-1].x = netParams[1];
+                nodes[Number(netParams[0])-1].y = netParams[2];
+            }
+
+            else if (line.substring( 0,7 ) == "END_101") {
+                name = files.filetoupload.originalFilename;
+                var query = {'name': req.body.name};
+                model.findOneAndUpdate(query,{name: files.filetoupload.originalFilename, coordinates: coordinates, nodes: nodes, edges: edges}, {upsert: true}, function(err, doc) {
+                    res.render("pages/fileuploadconfirmation", {
+                        nodes: nodes,
+                        edges: edges,
+                        coordinates: coordinates
+                    });
+                }).catch(function(err){
+                });
+                try {
+                    fs.unlinkSync(newpath)
+                    //file removed
+                  } catch(err) {
+                    console.error(err)
+                  }
+            }            
         });
 
 

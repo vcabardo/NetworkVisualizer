@@ -185,6 +185,7 @@
       network.on("dragEnd", function (params) {
         if(params.nodes > 0){
           saveGraph();
+
         }
       });
       network.stabilize();
@@ -243,6 +244,7 @@
          node.y = positions.y;
        });
 
+
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
         });
@@ -268,6 +270,7 @@
          node.y = positions.y;
        });;
 
+
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
         });
@@ -279,6 +282,7 @@
           fileText+= node.id + " " + node.x + " " + node.y + "\n"
         });
         fileText += "END_200\n\n";
+
 
         fileText += "BEG_001\n";
         edgeview.forEach(edge => {
