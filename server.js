@@ -128,7 +128,7 @@ app.post('/upload', function(req, res){
         rd.on('line', function(line) {
             if( line.substring( 0,7 ) == "BEG_000" ) { gettingNodeCount = true;}
             else if( line.substring( 0,7 ) == "END_000" ) { gettingNodeCount = false;
-                for (let i = 1; i <= nodeCount; i++){
+                for (let i = 0; i < nodeCount; i++){
                     nodes.push({id: i, label: "Node"+i, x: 0, y:0})
                 }
                 console.log(nodes)
@@ -162,8 +162,8 @@ app.post('/upload', function(req, res){
             else if ( gettingCoordinates == true ) {
                 // Building network topology
                 netParams = line.split(" ");
-                nodes[Number(netParams[0])-1].x = netParams[1];
-                nodes[Number(netParams[0])-1].y = netParams[2];
+                nodes[Number(netParams[0])].x = netParams[1];
+                nodes[Number(netParams[0])].y = netParams[2];
             }
 
             else if (line.substring( 0,7 ) == "END_101") {
@@ -187,20 +187,20 @@ app.post('/upload', function(req, res){
 
             else if ( gettingCoordinates == true ) {
                 netParams = line.split(" ");
-                nodes[Number(netParams[0])-1].x = netParams[1];
-                nodes[Number(netParams[0])-1].y = netParams[2];
+                nodes[Number(netParams[0])].x = netParams[1];
+                nodes[Number(netParams[0])].y = netParams[2];
             }
 
             else if ( setType1 == true ) {
                 netParams = line.split(" ");
                 nodeType1.push(Number(netParams[0]));
-                nodes[Number(netParams[0])-1].label = "server" + netParams[0];
+                nodes[Number(netParams[0])].label = "server" + netParams[0];
             }
 
             else if ( setType2 == true ) {
                 netParams = line.split(" ");
                 nodeType2.push(Number(netParams[0]));
-                nodes[Number(netParams[0])-1].label = "client" + netParams[0];
+                nodes[Number(netParams[0])].label = "client" + netParams[0];
             }
 
             else if (line.substring( 0,7 ) == "END_101") {

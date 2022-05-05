@@ -103,6 +103,7 @@
       var nodeType1=[]
       var nodeType2=[]
       var graphName = ''
+      var deleted = []
 
       var count = nodes.length;
       // create an array with nodes
@@ -122,9 +123,9 @@
       var options = {
         manipulation: {
           addNode: function(nodeData,callback) {
-            count += 1;
             nodeData.id = count;
             nodeData.label = 'Node'+count;
+            count += 1;
             callback(nodeData);
             saveGraph();
           },
@@ -144,6 +145,12 @@
             document.getElementById("network-popUp").style.display = "block";
             document.getElementById("nodeEdit").style.display = "block";
           },
+          deleteNode: function(nodeData,callback){
+            deleted.push(nodeData.nodes[0]);
+            callback(nodeData);
+            saveGraph();
+
+          },
           addEdge: function(edgeData,callback) {
             if (edgeData.from !== edgeData.to) {
               edgeData.value = 1
@@ -152,26 +159,30 @@
             }
           },
           editEdge: function(edgeData,callback) {
-            if (edgeData.from !== edgeData.to) {
-            document.getElementById("operation").innerText = "Edit Edge";
-            document.getElementById("edge-to").innerText = "To: "+edgeData.to;
-            document.getElementById("edge-from").innerText = "From: "+edgeData.from;
-            document.getElementById("edge-value").value = "Enter value";
+            if (edgeData.from !== edgeData.to) {              
+              document.getElementById("operation").innerText = "Edit Edge";
+              document.getElementById("edge-to").innerText = "To: "+edgeData.to;
+              document.getElementById("edge-from").innerText = "From: "+edgeData.from;
+              document.getElementById("edge-value").value = "Enter value";
 
-            document.getElementById("saveButton").onclick = saveEdgeData.bind(
-              this,
-              edgeData,
-              callback
-            );
-            document.getElementById("cancelButton").onclick = cancelEdit.bind(
-              this,
-              callback
-            );
-            document.getElementById("network-popUp").style.display = "block";
-            document.getElementById("edgeEdit").style.display = "block";
+              document.getElementById("saveButton").onclick = saveEdgeData.bind(
+                this,
+                edgeData,
+                callback
+              );
+              document.getElementById("cancelButton").onclick = cancelEdit.bind(
+                this,
+                callback
+              );
+              document.getElementById("network-popUp").style.display = "block";
+              document.getElementById("edgeEdit").style.display = "block";
+            }
+          },
+          deleteEdge: function(edgeData,callback){
+            callback(edgeData);
+            saveGraph();
 
           }
-        }
       },
 
       layout: {
@@ -232,44 +243,84 @@
         var nodeview = new vis.DataView(nodes, {
           fields:['id', 'label', 'x', 'y']
         });
+        var newNodes = []
         nodeview.forEach(node => {
           var positions = network.getPosition(node.id);
           node.x = positions.x;
           node.y = positions.y;
-        });;
-
-        nodeview.forEach(node => {
-         var positions = network.getPosition(node.id);
-         node.x = positions.x;
-         node.y = positions.y;
-       });
+          alert(node.id)
+          alert(node.label)
+          if (deleted.length > 0 && deleted[0] < node.id){
+            node.id = node.id - 1;
+          }
+          if (node.id == (newNodes.length)){
+            newNodes.push(node);
+          }
+          else{
+            newNodes[node.id].label = node.label;            
+          }
+        });
 
 
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
         });
+
+        edgeview.forEach(edge => {
+          if (deleted.length > 0){
+            if (deleted[0] < Number(edge.from)){
+              edge.from = Number(edge.from) - 1;
+            }
+            if (deleted[0] < Number(edge.to)){
+              edge.to = Number(edge.to) - 1;
+            }
+          }
+        });
+
+        var types = [];
+        for (var i of nodeType1) {         
+          if (deleted[0] < i){
+            types.push(i - 1);
+          }    
+          else if (deleted[0] != i){
+            types.push(i);
+          }
+        }
+
+        nodeType1 = types;
+        types = [];
+
+        for (var i of nodeType2) {
+          if (deleted[0] < i){
+            types.push(i - 1);
+          }
+          else if (deleted[0] != i){
+            types.push(i);
+          }
+        }
+
+        nodeType2 = types;
         graphName = document.getElementById("graph-name").value
-        var graphs = { name: graphName, coordinates: true, nodes: nodeview.get(), edges: edgeview.get()};
+        var graphs = { name: graphName, coordinates: true, nodes: newNodes, edges: edgeview.get(), nodeType1: nodeType1, nodeType2: nodeType2};
+
         // Send the request to send-ajax-data.php
         xhr.send(JSON.stringify(graphs));
+        if (deleted.length >0){
+          deleted = [];
+          fetchGraph(graphName);
+        }
       }
 
       function downloadGraph() {
         var nodeview = new vis.DataView(nodes, {
           fields:['id', 'label', 'x', 'y']
         });
+        
         nodeview.forEach(node => {
           var positions = network.getPosition(node.id);
           node.x = positions.x;
           node.y = positions.y;
-        });;
-
-        nodeview.forEach(node => {
-         var positions = network.getPosition(node.id);
-         node.x = positions.x;
-         node.y = positions.y;
-       });;
-
+        });
 
         var edgeview = new vis.DataView(edges, {
           fields:['to', 'from', 'value']
@@ -328,7 +379,8 @@
           var elem = document.getElementById("Response");                
 
           if (this.readyState == 4 && this.status == 200) {          
-            var response = JSON.parse(this.responseText);          
+            var response = JSON.parse(this.responseText);         
+ 
             graphName = response.name          
             document.getElementById("graph-name").value = graphName;          
             coordinates = response.coordinates;          
@@ -342,28 +394,32 @@
               }          
             }
 
+            count = nodes.length;
+
             //nodes = response.nodes;
             edges = response.edges;
             nodeType1 = response.nodeType1;
             nodeType2 = response.nodeType2;
 
             for (var i of nodeType1) {            
-              nodes[i-1].color = "#FF0000";      
-              nodes[i-1].shape = "hexagon";     
-              nodes[i-1].font = "14px arial white"      
+              nodes[i].color = "#FF0000";      
+              nodes[i].shape = "hexagon";     
+              nodes[i].font = "14px arial white"      
             }            
             for (var i of nodeType2) {            
-              nodes[i-1].color = "#FFFFF0";             
-              nodes[i-1].shape = "circularImage";            
-              nodes[i-1].image ="https://cdn.pixabay.com/photo/2018/10/02/15/18/cloud-3719093_1280.png";            
-              nodes[i-1].font = "14px arial white"      
+              nodes[i].color = "#FFFFF0";             
+              nodes[i].shape = "circularImage";            
+              nodes[i].image ="https://cdn.pixabay.com/photo/2018/10/02/15/18/cloud-3719093_1280.png";            
+              nodes[i].font = "14px arial white"      
             }            
+
             nodes = new vis.DataSet(nodes);            
             edges = new vis.DataSet(edges);            
             data = {            
               nodes: nodes,            
               edges: edges,            
-            };            
+            };                        
+
             network = new vis.Network(container, data, options);            
             network.on("dragEnd", function (params) {            
               if(params.nodes > 0){            
